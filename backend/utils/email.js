@@ -12,21 +12,39 @@
 
 import nodemailer from "nodemailer";
 
-// Create a reusable transporter instance
-const createTransporter = () =>
-  nodemailer.createTransport({
-    host: "smtp.gmail.com",
-    port: 465,
-    secure: true, // true for 465, false for other ports
+// Create a reusable transporter instance using generic SMTP credentials
+// Recommended for production (Brevo, SendGrid, etc.) over Gmail SMTP.
+const createTransporter = () => {
+  const host = process.env.SMTP_HOST || "smtp-relay.brevo.com";
+  const port = parseInt(process.env.SMTP_PORT, 10) || 587;
+  const user = process.env.SMTP_USER || process.env.EMAIL_USER;
+  const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
+  
+  console.log("[EmailService] Configuring SMTP Transporter with:");
+  console.log(`- HOST: ${host}`);
+  console.log(`- PORT: ${port}`);
+  console.log(`- USER exists: ${!!user}`);
+  console.log(`- PASS exists: ${!!pass}`);
+  
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465, // true for 465, false for 587/2525
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS, // Use App Password for Gmail
+      user,
+      pass,
+    },
+    // Sometimes Render requires TLS rejectUnauthorized: false for internal proxies
+    // but typically Brevo provides a valid cert.
+    tls: {
+      rejectUnauthorized: process.env.NODE_ENV === "production" ? true : false,
     },
     // Production-safe SMTP timeouts (60 seconds)
     connectionTimeout: 60000,
     greetingTimeout: 60000,
     socketTimeout: 60000,
   });
+};
 
 const transporter = createTransporter();
 
@@ -47,8 +65,9 @@ const sendEmail = async (options) => {
     console.log(`[EmailService] Starting to send email to: ${options.to}`);
     
     // Await the sendMail promise directly without artificial race timeouts
+    const senderEmail = process.env.SMTP_USER || process.env.EMAIL_USER || "noreply@campusresolve.com";
     const info = await transporter.sendMail({
-      from: `"CampusResolve" <${process.env.EMAIL_USER}>`,
+      from: `"CampusResolve" <${senderEmail}>`,
       ...options,
     });
 
