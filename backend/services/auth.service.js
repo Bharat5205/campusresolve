@@ -198,15 +198,22 @@ export const refreshAccessToken = async (token) => {
  * Initiates the password reset OTP flow.
  */
 export const forgotPassword = async (email) => {
+  console.log(`[ForgotPassword] Request received for email: ${email}`);
   const user = await prisma.user.findUnique({ where: { email } });
-  // Always respond with success on controller to prevent email enumeration,
-  // but do not dispatch OTP for non-existent users.
-  if (!user) return;
+  
+  if (!user) {
+    console.log(`[ForgotPassword] User not found for email: ${email}. Returning silently.`);
+    return;
+  }
+  
+  console.log(`[ForgotPassword] User found: ${user.id}`);
 
   // Generate secure random 6-digit OTP
   const otp = Math.floor(100000 + Math.random() * 900000).toString();
   const hashedOtp = await bcrypt.hash(otp, SALT_ROUNDS);
   const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
+  
+  console.log(`[ForgotPassword] Reset token generated`);
 
   // Clean up any stale reset OTP records for this email
   await prisma.passwordResetOTP.deleteMany({
@@ -219,7 +226,15 @@ export const forgotPassword = async (email) => {
   });
 
   // Send SMTP Email
-  await sendOTPEmail(email, otp, user.name);
+  console.log(`[ForgotPassword] Email sending started to ${email}`);
+  try {
+    // Add a strict timeout to nodemailer if possible, or just catch errors
+    await sendOTPEmail(email, otp, user.name);
+    console.log(`[ForgotPassword] Email sent successfully to ${email}`);
+  } catch (error) {
+    console.error(`[ForgotPassword] Email sending failed:`, error);
+    throw new AppError("Failed to send OTP email. Please try again later.", 500);
+  }
 };
 
 /**

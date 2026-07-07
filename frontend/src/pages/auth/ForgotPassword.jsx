@@ -18,14 +18,25 @@ export default function ForgotPassword() {
   });
 
   const onSubmit = async (data) => {
+    console.log("[ForgotPassword] API request started for:", data.email);
     setIsSubmitting(true);
     try {
-      await api.post("/auth/forgot-password", { email: data.email });
-      toast.success("OTP sent to your email.");
-      navigate("/verify-otp", { state: { email: data.email } });
+      const response = await api.post("/auth/forgot-password", { email: data.email });
+      console.log("[ForgotPassword] API response received:", response.status);
+      console.log("[ForgotPassword] Response body:", response.data);
+      
+      if (response.data && response.data.success) {
+        toast.success("OTP sent to your email.");
+        console.log("[ForgotPassword] Navigation triggered to /verify-otp");
+        navigate("/verify-otp", { state: { email: data.email } });
+      } else {
+        throw new Error(response.data?.message || "Invalid response from server");
+      }
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to send OTP.");
+      console.error("[ForgotPassword] Error caught:", err);
+      toast.error(err.response?.data?.message || err.message || "Failed to send OTP.");
     } finally {
+      console.log("[ForgotPassword] Loading false");
       setIsSubmitting(false);
     }
   };

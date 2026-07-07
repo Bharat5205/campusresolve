@@ -20,6 +20,9 @@ const createTransporter = () =>
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS, // Use App Password for Gmail
     },
+    connectionTimeout: 10000, // 10 seconds
+    greetingTimeout: 10000,
+    socketTimeout: 10000,
   });
 
 const transporter = createTransporter();
@@ -31,10 +34,17 @@ const transporter = createTransporter();
  * @returns {Promise<void>}
  */
 const sendEmail = async (options) => {
-  await transporter.sendMail({
+  const mailPromise = transporter.sendMail({
     from: `"CampusResolve" <${process.env.EMAIL_USER}>`,
     ...options,
   });
+
+  // Enforce a strict 10 second hard timeout
+  const timeoutPromise = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error("Email sending timed out after 10 seconds")), 10000)
+  );
+
+  await Promise.race([mailPromise, timeoutPromise]);
 };
 
 /**
