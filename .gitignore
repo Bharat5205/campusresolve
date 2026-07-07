@@ -14,8 +14,7 @@ yarn-error.log
 frontend/dist/
 frontend/build/
 
-# Prisma
-backend/prisma/migrations/
+
 
 # IDEs and Editors
 .idea/
