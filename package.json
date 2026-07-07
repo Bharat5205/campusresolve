@@ -1,0 +1,15 @@
+{
+  "name": "campusresolve",
+  "version": "1.0.0",
+  "description": "CampusResolve - Smart Campus Complaint & Maintenance Management System",
+  "private": true,
+  "scripts": {
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "prisma:generate": "cd backend && npm run prisma:generate",
+    "prisma:migrate": "cd backend && npm run prisma:migrate",
+    "prisma:seed": "cd backend && npm run prisma:seed",
+    "prisma:studio": "cd backend && npm run prisma:studio"
+  }
+}

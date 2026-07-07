@@ -1,0 +1,220 @@
+// This is the Prisma schema for CampusResolve.
+// It defines the data model for the entire application.
+// Run `prisma migrate dev` to apply changes to the database.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum Role {
+  STUDENT
+  WARDEN
+  STAFF
+}
+
+enum ComplaintStatus {
+  PENDING
+  ASSIGNED
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum NotificationType {
+  NEW_COMPLAINT
+  COMPLAINT_ASSIGNED
+  COMPLAINT_ACCEPTED
+  PROGRESS_UPDATED
+  COMPLAINT_RESOLVED
+  COMPLAINT_REOPENED
+  COMPLAINT_CANCELLED
+  SYSTEM
+}
+
+// ─────────────────────────────────────────────
+// USER MODEL
+// ─────────────────────────────────────────────
+
+model User {
+  id             String   @id @default(uuid())
+  name           String
+  email          String   @unique
+  password       String?  // Nullable for Google OAuth users
+  role           Role     @default(STUDENT)
+  profileImage   String?  // Cloudinary URL or Google avatar URL
+  phone          String?
+  rollNumber     String?  @unique // Applicable for STUDENT role
+  department     String?  // Applicable for STUDENT/STAFF/WARDEN role
+  year           String?  // Applicable for STUDENT role
+  hostel         String?  // Applicable for STUDENT role
+  roomNumber     String?  // Applicable for STUDENT role
+  isActive       Boolean  @default(true)
+  isVerified     Boolean  @default(false)
+  googleId       String?  @unique
+  refreshToken   String?
+
+  // Relations
+  raisedComplaints   Complaint[]      @relation("RaisedBy")
+  assignedComplaints Complaint[]      @relation("AssignedTo")
+  comments           Comment[]
+  notifications      Notification[]
+  complaintHistories ComplaintHistory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// COMPLAINT MODEL
+// ─────────────────────────────────────────────
+
+model Complaint {
+  id          String          @id @default(uuid())
+  title       String
+  description String
+  category    String          // e.g. "Electrical", "Plumbing", "Sanitation"
+  status      ComplaintStatus @default(PENDING)
+  priority    Priority        @default(LOW)
+  location    String          // e.g. "Block A - Room 204"
+  images      String[]        // Array of Cloudinary URLs
+  remarks     String?         // Warden/Staff remarks on closure
+  cancelReason String?
+  isReopened  Boolean         @default(false)
+  reopenReason String?
+  
+  // Phase 5 Resolution Data
+  resolutionImage String?
+  resolutionNotes String?
+
+  // Relations
+  raisedBy   User   @relation("RaisedBy", fields: [raisedById], references: [id], onDelete: Cascade)
+  raisedById String
+
+  assignedTo   User?   @relation("AssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
+  assignedToId String?
+
+  comments      Comment[]
+  notifications Notification[]
+  histories     ComplaintHistory[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  resolvedAt  DateTime?
+  assignedAt  DateTime?
+  acceptedAt  DateTime?
+
+  @@index([status])
+  @@index([priority])
+  @@index([category])
+  @@index([createdAt])
+  @@index([raisedById])
+  @@index([assignedToId])
+  @@map("complaints")
+}
+
+// ─────────────────────────────────────────────
+// COMMENT MODEL
+// ─────────────────────────────────────────────
+
+model Comment {
+  id      String @id @default(uuid())
+  content String
+
+  // Relations
+  author     User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId   String
+
+  complaint    Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  complaintId  String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([complaintId])
+  @@map("comments")
+}
+
+// ─────────────────────────────────────────────
+// NOTIFICATION MODEL
+// ─────────────────────────────────────────────
+
+model Notification {
+  id      String           @id @default(uuid())
+  title   String
+  message String
+  type    NotificationType
+  isRead  Boolean          @default(false)
+
+  // Relations
+  recipient   User   @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  recipientId String
+
+  complaint    Complaint? @relation(fields: [complaintId], references: [id], onDelete: SetNull)
+  complaintId  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([recipientId])
+  @@index([complaintId])
+  @@map("notifications")
+}
+
+// ─────────────────────────────────────────────
+// PASSWORD RESET OTP MODEL
+// ─────────────────────────────────────────────
+
+model PasswordResetOTP {
+  id        String   @id @default(uuid())
+  email     String
+  otp       String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@map("password_reset_otps")
+}
+
+// ─────────────────────────────────────────────
+// COMPLAINT HISTORY MODEL
+// ─────────────────────────────────────────────
+
+model ComplaintHistory {
+  id          String   @id @default(uuid())
+  action      String   // e.g. "STATUS_CHANGE", "PRIORITY_CHANGE", "ASSIGNED", "CANCELLED"
+  oldValue    String?
+  newValue    String?
+  reason      String?
+
+  // Relations
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  complaintId String
+
+  actor       User      @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  actorId     String
+
+  createdAt   DateTime  @default(now())
+
+  @@index([complaintId])
+  @@index([actorId])
+  @@map("complaint_histories")
+}
