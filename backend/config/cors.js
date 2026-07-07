@@ -9,7 +9,9 @@
  */
 
 const ALLOWED_ORIGINS = [
-  process.env.CLIENT_URL || "http://localhost:5173",
+  process.env.CLIENT_URL || "https://campusresolve-lyart.vercel.app",
+  "https://campusresolve-lyart.vercel.app",
+  "http://localhost:5173",
 ];
 
 export const corsOptions = {

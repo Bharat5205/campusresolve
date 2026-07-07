@@ -24,10 +24,14 @@ export function configurePassport(passport) {
         callbackURL: process.env.GOOGLE_CALLBACK_URL,
       },
       async (accessToken, refreshToken, profile, done) => {
+        console.log("=== OAUTH DEBUG ===");
+        console.log("Passport callback entered.");
+        console.log("Google profile received:", profile.emails?.[0]?.value);
         // Handled in auth.service.js -> handleGoogleAuth
         try {
           done(null, profile);
         } catch (err) {
+          console.error("Error in Passport Google Strategy:", err);
           done(err, null);
         }
       }

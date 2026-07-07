@@ -301,6 +301,7 @@ export const handleGoogleAuth = async (profile) => {
   let user = await prisma.user.findUnique({ where: { email } });
 
   if (!user) {
+    console.log("User not found, provisioning new student profile...");
     // User does not exist — create STUDENT profile
     user = await prisma.user.create({
       data: {
@@ -312,7 +313,9 @@ export const handleGoogleAuth = async (profile) => {
         isVerified: true,
       },
     });
+    console.log("New student provisioned:", user.id);
   } else {
+    console.log("Existing user found:", user.id);
     // User exists — update Google links if needed
     const updateData = {};
     if (!user.googleId) updateData.googleId = googleId;
@@ -323,6 +326,7 @@ export const handleGoogleAuth = async (profile) => {
         where: { id: user.id },
         data: updateData,
       });
+      console.log("User Google fields updated.");
     }
   }
 
@@ -330,6 +334,7 @@ export const handleGoogleAuth = async (profile) => {
     throw new AppError("Your account has been deactivated. Please contact the warden.", 403);
   }
 
+  console.log("Generating JWT for user:", user.email);
   const payload = { id: user.id, email: user.email, role: user.role };
   const accessToken = generateAccessToken(payload);
   const refreshToken = generateRefreshToken({ id: user.id });
@@ -338,6 +343,7 @@ export const handleGoogleAuth = async (profile) => {
     where: { id: user.id },
     data: { refreshToken },
   });
+  console.log("JWT generated and stored successfully.");
 
   return { user: sanitizeUser(user), accessToken, refreshToken };
 };

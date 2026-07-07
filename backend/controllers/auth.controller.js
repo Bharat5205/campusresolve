@@ -98,9 +98,19 @@ export const googleCallback = async (req, res, next) => {
   try {
     const { user, accessToken, refreshToken } = await authService.handleGoogleAuth(req.user);
     setRefreshTokenCookie(res, refreshToken);
+    
+    // Construct redirect URL safely
+    const clientUrl = process.env.CLIENT_URL || "https://campusresolve-lyart.vercel.app";
+    const redirectUrl = `${clientUrl}/auth/callback?token=${accessToken}`;
+    
+    console.log("=== OAUTH REDIRECT ===");
+    console.log("CLIENT_URL from env:", process.env.CLIENT_URL);
+    console.log("Redirecting user to:", redirectUrl);
+    
     // Redirect to frontend with access token as query param (handled by frontend)
-    res.redirect(`${process.env.CLIENT_URL}/auth/callback?token=${accessToken}`);
+    res.redirect(redirectUrl);
   } catch (err) {
+    console.error("=== OAUTH ERROR ===", err);
     next(err);
   }
 };
