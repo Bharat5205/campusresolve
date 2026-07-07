@@ -15,8 +15,11 @@
 
 import axios from "axios";
 
+const envUrl = import.meta.env.VITE_API_URL || "";
+const apiBaseUrl = envUrl.endsWith("/api") ? envUrl : `${envUrl}/api`;
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "/api",
+  baseURL: apiBaseUrl,
   withCredentials: true, // Send/receive HttpOnly cookies
   headers: {
     "Content-Type": "application/json",

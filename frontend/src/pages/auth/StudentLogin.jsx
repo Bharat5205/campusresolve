@@ -140,7 +140,7 @@ export default function StudentLogin() {
           </div>
 
           <a
-            href="/api/auth/google"
+            href={`${(import.meta.env.VITE_API_URL || "").endsWith("/api") ? import.meta.env.VITE_API_URL : `${import.meta.env.VITE_API_URL || ""}/api`}/auth/google`}
             className="btn-secondary w-full py-2 flex items-center justify-center gap-2.5 text-sm font-medium shadow-sm hover:bg-gray-50 transition-colors border border-gray-300 rounded-lg"
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
