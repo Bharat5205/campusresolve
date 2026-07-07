@@ -15,14 +15,17 @@ import nodemailer from "nodemailer";
 // Create a reusable transporter instance
 const createTransporter = () =>
   nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true, // true for 465, false for other ports
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS, // Use App Password for Gmail
     },
-    connectionTimeout: 10000, // 10 seconds
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
+    // Production-safe SMTP timeouts (60 seconds)
+    connectionTimeout: 60000,
+    greetingTimeout: 60000,
+    socketTimeout: 60000,
   });
 
 const transporter = createTransporter();
@@ -34,17 +37,27 @@ const transporter = createTransporter();
  * @returns {Promise<void>}
  */
 const sendEmail = async (options) => {
-  const mailPromise = transporter.sendMail({
-    from: `"CampusResolve" <${process.env.EMAIL_USER}>`,
-    ...options,
-  });
+  try {
+    console.log(`[EmailService] Attempting to connect to SMTP server...`);
+    
+    // Verify connection configuration before sending
+    await transporter.verify();
+    console.log(`[EmailService] SMTP connection verified successfully.`);
+    
+    console.log(`[EmailService] Starting to send email to: ${options.to}`);
+    
+    // Await the sendMail promise directly without artificial race timeouts
+    const info = await transporter.sendMail({
+      from: `"CampusResolve" <${process.env.EMAIL_USER}>`,
+      ...options,
+    });
 
-  // Enforce a strict 10 second hard timeout
-  const timeoutPromise = new Promise((_, reject) =>
-    setTimeout(() => reject(new Error("Email sending timed out after 10 seconds")), 10000)
-  );
-
-  await Promise.race([mailPromise, timeoutPromise]);
+    console.log(`[EmailService] Email sent successfully to: ${options.to}. Message ID: ${info.messageId}`);
+  } catch (error) {
+    console.error(`[EmailService] SMTP Error encountered while sending email to ${options.to}:`, error);
+    // Throw a generic error to prevent exposing internal SMTP details to the client
+    throw new Error("Failed to dispatch email due to a network or configuration issue. Please try again later.");
+  }
 };
 
 /**
