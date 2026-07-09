@@ -32,6 +32,8 @@ export default function ProtectedRoute({ allowedRoles }) {
       loginPath = "/staff-login";
     }
     // Preserve the attempted URL so we can redirect back after login
+    console.log("=== OAUTH DEBUG ===");
+    console.log(`ProtectedRoute: User is not authenticated. Redirecting from ${location.pathname} to ${loginPath}.`);
     return <Navigate to={loginPath} state={{ from: location }} replace />;
   }
 

@@ -31,6 +31,16 @@ export function AuthProvider({ children }) {
 
   // Restores user session on boot or refresh
   const restoreSession = useCallback(async () => {
+    // Prevent race condition during Google OAuth redirect.
+    // Let the GoogleCallback component handle the initial token setup.
+    if (
+      window.location.pathname.includes('/auth/callback') &&
+      window.location.search.includes('token=')
+    ) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const { data } = await refreshTokenApi();
       setAccessToken(data.data.accessToken);

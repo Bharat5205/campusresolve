@@ -22,8 +22,12 @@ export default function GoogleCallback() {
     const token = searchParams.get("token");
 
     if (token) {
+      console.log("=== OAUTH DEBUG ===");
+      console.log("GoogleCallback: Token received from URL:", token.substring(0, 20) + "...");
+      
       // Store access token in JS memory
       setAccessToken(token);
+      console.log("GoogleCallback: Token set in api.js memory");
 
       // Fetch user profile from /me and redirect
       refreshUser()
@@ -42,6 +46,7 @@ export default function GoogleCallback() {
             const payload = JSON.parse(window.atob(base64));
             
             const dashboardPath = ROLE_DASHBOARD_MAP[payload.role] || "/";
+            console.log("GoogleCallback: User profile fetched. Navigating to:", dashboardPath);
             navigate(dashboardPath, { replace: true });
           } catch {
             navigate("/", { replace: true });
